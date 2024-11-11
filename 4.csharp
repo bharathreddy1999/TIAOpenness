@@ -1,0 +1,61 @@
+using Siemens.Engineering;
+using Siemens.Engineering.HW;
+using Siemens.Engineering.HW.Features;
+using System;
+
+public class PLCProtectionSettings
+{
+    public void SetPLCProtection(string protectionOption)
+    {
+        // TIA Portal Instanz starten
+        TiaPortal tiaPortal = new TiaPortal(TiaPortalMode.WithoutUserInterface);
+        Project project = tiaPortal.Projects[0]; // Angenommen, das Projekt ist bereits offen.
+
+        // PLC-Gerät finden
+        Device plcDevice = project.Devices[0]; // Index des gewünschten Geräts anpassen.
+
+        // Zugriff auf CPU-Schutz-Einstellungen
+        Protection protection = plcDevice.GetService<Protection>();
+
+        if (protection != null)
+        {
+            switch (protectionOption)
+            {
+                case "Full Access":
+                    // Volle Zugriffsrechte (kein Schutz)
+                    protection.AccessLevel = AccessLevel.FullAccess;
+                    Console.WriteLine("Schutzstufe: Volle Zugriffsrechte (kein Schutz) gesetzt.");
+                    break;
+
+                case "Write Protected":
+                    // Schreibgeschützt
+                    protection.AccessLevel = AccessLevel.WriteProtected;
+                    Console.WriteLine("Schutzstufe: Schreibgeschützt gesetzt.");
+                    break;
+
+                case "Read Only":
+                    // Lesegeschützt
+                    protection.AccessLevel = AccessLevel.ReadOnly;
+                    Console.WriteLine("Schutzstufe: Lesegeschützt gesetzt.");
+                    break;
+
+                case "No Access":
+                    // Vollständiger Schutz (Passwort erforderlich)
+                    protection.AccessLevel = AccessLevel.NoAccess;
+                    Console.WriteLine("Schutzstufe: Kein Zugriff (vollständiger Schutz) gesetzt.");
+                    break;
+
+                default:
+                    Console.WriteLine("Ungültige Schutzoption. Bitte 'Full Access', 'Write Protected', 'Read Only' oder 'No Access' wählen.");
+                    break;
+            }
+        }
+        else
+        {
+            Console.WriteLine("Die Schutzfunktion für die PLC konnte nicht geladen werden.");
+        }
+
+        // TIA Portal Instanz freigeben
+        tiaPortal.Dispose();
+    }
+}
