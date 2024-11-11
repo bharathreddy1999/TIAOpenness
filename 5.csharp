@@ -1,0 +1,362 @@
+using System;  
+using System.Collections.Generic;  
+using System.IO;  
+using System.Linq;  
+using System.Security;  
+using Siemens.Engineering;  
+using Siemens.Engineering.Compiler;  
+using Siemens.Engineering.HW;  
+using Siemens.Engineering.HW.Features;  
+  
+namespace TIAOpennessLibrary  
+{  
+    public class TIA_V19 : IDisposable  
+    {  
+        public static TiaPortal insTIA;  
+        public static Project projectTIA;  
+        public static Device deviceTIA;  
+        public static Device deviceTIA2;  
+        public static ICompilable compileService;  
+  
+        public void CreateTIAinstance(bool guiTIA)  
+        {  
+            if (guiTIA)  
+            {  
+                insTIA = new TiaPortal(TiaPortalMode.WithUserInterface);  
+            }  
+            else  
+            {  
+                insTIA = new TiaPortal(TiaPortalMode.WithoutUserInterface);  
+            }  
+        }  
+  
+        public void CreateTIAProject(string prjpath, string prjName, bool open)  
+        {  
+            if (!open)  
+            {  
+                DirectoryInfo targetDirectory = new DirectoryInfo(prjpath);  
+                projectTIA = insTIA.Projects.Create(targetDirectory, prjName);  
+            }  
+            else  
+            {  
+                FileInfo fileInfo = new FileInfo(prjpath + "\\" + prjName + ".ap19");  
+                projectTIA = insTIA.Projects.Open(fileInfo);  
+            }  
+        }  
+  
+        public void CreatePLC(string plcName, PlcProtectionAccessLevel accessLevel, SecureString password = null)  
+        {  
+            string plcVersion = "V2.8";  
+            string plcArticle = "6ES7 518-4FP00-0AB0";  
+            string plcIdent = "OrderNumber:" + plcArticle + "/" + plcVersion;  
+            string plcStation = "station" + plcName;  
+  
+            deviceTIA = projectTIA.Devices.CreateWithItem(plcIdent, plcName, plcStation);  
+  
+            // Set the access level and password for the newly created PLC  
+            SetAccessLevelAndPassword(deviceTIA.DeviceItems[0], accessLevel, password);  
+        }  
+  
+        public void CreateDrive(string driveName)  
+        {  
+            string driveVersion = "4.7.14";  
+            string driveArticle = "6SL3210-1KE23-8UF1";  
+            string driveIdent = "OrderNumber:" + driveArticle + "/" + driveVersion;  
+            string driveStation = null;  
+  
+            deviceTIA2 = projectTIA.Devices.CreateWithItem(driveIdent, driveName, driveStation);  
+        }  
+  
+        public static void CompilePlcSoftware(PlcSoftware plcSoftware)  
+        {  
+            compileService = plcSoftware.GetService<ICompilable>();  
+            CompilerResult result = compileService.Compile();  
+            // Check the result and handle errors if needed  
+        }  
+  
+        public void SaveProject()  
+        {  
+            projectTIA.Save();  
+        }  
+  
+        public void CloseProject()  
+        {  
+            projectTIA.Close();  
+        }  
+  
+        public void CloseTIAInstance()  
+        {  
+            if (insTIA != null)  
+            {  
+                insTIA.Dispose();  
+                insTIA = null;  
+                Console.WriteLine("TIA Portal instance closed successfully.");  
+            }  
+        }  
+  
+        public void Dispose()  
+        {  
+            CloseTIAInstance();  
+        }  
+  
+        public static void DeleteHardware(string deviceName)  
+        {  
+            if (projectTIA == null)  
+                throw new InvalidOperationException("Project is not opened.");  
+  
+            Device deviceToDelete = projectTIA.Devices.FirstOrDefault(d => d.Name == deviceName);  
+            if (deviceToDelete != null)  
+            {  
+                deviceToDelete.Delete();  
+                Console.WriteLine($"Device '{deviceName}' deleted successfully.");  
+            }  
+            else  
+            {  
+                Console.WriteLine($"Device '{deviceName}' not found.");  
+            }  
+        }  
+  
+        public void UpdateProgramPLC()  
+        {  
+            if (projectTIA == null)  
+                throw new InvalidOperationException("Project is not opened.");  
+  
+            PlcSoftware plcSoftware = deviceTIA?.DeviceItems.OfType<PlcSoftware>().FirstOrDefault();  
+            if (plcSoftware != null)  
+            {  
+                plcSoftware.UpdateProgram();  
+                Console.WriteLine("PLC program updated successfully.");  
+            }  
+            else  
+            {  
+                Console.WriteLine("PLC software not found.");  
+            }  
+        }  
+  
+        public void SetAccessLevelAndPassword(DeviceItem plcDevice, PlcProtectionAccessLevel accessLevel, SecureString password = null)  
+        {  
+            var plcAccessLevelProvider = plcDevice.GetService<PlcAccessLevelProvider>();  
+  
+            if (plcAccessLevelProvider != null)  
+            {  
+                plcAccessLevelProvider.PlcProtectionAccessLevel = accessLevel;  
+  
+                if (password != null)  
+                {  
+                    plcAccessLevelProvider.SetPassword(accessLevel, password);  
+                }  
+  
+                Console.WriteLine($"Access level and password set successfully for {plcDevice.Name}.");  
+            }  
+            else  
+            {  
+                Console.WriteLine($"PLC access level provider not found for {plcDevice.Name}.");  
+            }  
+        }  
+  
+        public List<DeviceItem> GetPlcDevices()  
+        {  
+            List<DeviceItem> plcDevices = new List<DeviceItem>();  
+  
+            foreach (var device in projectTIA.Devices)  
+            {  
+                foreach (var deviceItem in device.DeviceItems)  
+                {  
+                    if (deviceItem.GetService<PlcAccessLevelProvider>() != null)  
+                    {  
+                        plcDevices.Add(deviceItem);  
+                    }  
+                }  
+            }  
+  
+            return plcDevices;  
+        }  
+    }  
+}  
+
+****************************************************************************************************************************************************************
+
+
+
+using System;  
+using System.Collections.Generic;  
+using System.Security;  
+using TIAOpennessLibrary;  
+  
+namespace TIAOpennessConsoleApp  
+{  
+    internal class Program  
+    {  
+        static void Main(string[] args)  
+        {  
+            TIA_V19 newTIA = new TIA_V19();  
+  
+            Console.WriteLine("Starting TIA Portal...");  
+            newTIA.CreateTIAinstance(true);  
+            Console.WriteLine("done");  
+  
+            Console.Write("Open or create the TIA Project (open/create): ");  
+            string openOrClose = Console.ReadLine();  
+  
+            Console.Write("Project Path: ");  
+            string projectPath = Console.ReadLine();  
+  
+            Console.Write("Project Name: ");  
+            string projectName = Console.ReadLine();  
+  
+            if (openOrClose == "create")  
+            {  
+                newTIA.CreateTIAProject(projectPath, projectName, false);  
+            }  
+            else if (openOrClose == "open")  
+            {  
+                newTIA.CreateTIAProject(projectPath, projectName, true);  
+            }  
+            Console.WriteLine("Project Creation is finished");  
+  
+            CreateMultiplePLCs(newTIA, 1);  
+            CreateMultipleDrives(newTIA, 1);  
+            Console.WriteLine("All the Devices are successfully added!..");  
+  
+            Console.Write("Would you like to delete a device? ");  
+            string delete = Console.ReadLine();  
+            if (delete == "yes")  
+            {  
+                Console.WriteLine("Please specify the device name: ");  
+                string deleteDeviceName = Console.ReadLine();  
+                TIA_V19.DeleteHardware(deleteDeviceName);  
+            }  
+  
+            Console.Write("Would you like to save the project? ");  
+            string save = Console.ReadLine();  
+            if (save == "yes")  
+            {  
+                newTIA.SaveProject();  
+            }  
+            else  
+            {  
+                return;  
+            }  
+  
+            Console.Write("Would you like to close the project? ");  
+            string close = Console.ReadLine();  
+            if (close == "yes")  
+            {  
+                newTIA.CloseProject();  
+            }  
+            else  
+            {  
+                return;  
+            }  
+  
+            newTIA.CloseTIAInstance();  
+            Console.ReadLine();  
+        }  
+  
+        static void CreateMultiplePLCs(TIA_V19 tia, int current)  
+        {  
+            Console.WriteLine($"Would you like to add PLC-{current}? (yes/no)");  
+            string yesOrNo = Console.ReadLine();  
+            if (yesOrNo == "no")  
+            {  
+                return;  
+            }  
+            else if (yesOrNo == "yes")  
+            {  
+                Console.Write("PLC Name: ");  
+                string plcName = Console.ReadLine();  
+  
+                PlcProtectionAccessLevel accessLevel;  
+                SecureString password = null;  
+  
+                Console.WriteLine("Select Access Level:");  
+                Console.WriteLine("1: Full Access");  
+                Console.WriteLine("2: Read Access");  
+                Console.WriteLine("3: HMI Access");  
+                Console.WriteLine("4: No Access");  
+                Console.WriteLine("5: Full Access Including Failsafe");  
+  
+                string selection = Console.ReadLine();  
+  
+                switch (selection)  
+                {  
+                    case "1":  
+                        accessLevel = PlcProtectionAccessLevel.FullAccess;  
+                        break;  
+                    case "2":  
+                        accessLevel = PlcProtectionAccessLevel.ReadAccess;  
+                        password = GetSecureStringFromUser("Enter Password:");  
+                        break;  
+                    case "3":  
+                        accessLevel = PlcProtectionAccessLevel.HMIAccess;  
+                        password = GetSecureStringFromUser("Enter Password:");  
+                        break;  
+                    case "4":  
+                        accessLevel = PlcProtectionAccessLevel.NoAccess;  
+                        password = GetSecureStringFromUser("Enter Password:");  
+                        break;  
+                    case "5":  
+                        accessLevel = PlcProtectionAccessLevel.FullAccessIncludingFailsafe;  
+                        break;  
+                    default:  
+                        Console.WriteLine("Invalid selection. Skipping this device.");  
+                        return;  
+                }  
+  
+                Console.Write("Creating the new PLC....");  
+                tia.CreatePLC(plcName, accessLevel, password);  
+                Console.WriteLine("PLC is successfully created");  
+                CreateMultiplePLCs(tia, current + 1);  
+            }  
+        }  
+  
+        static void CreateMultipleDrives(TIA_V19 tia, int current)  
+        {  
+            Console.WriteLine($"Would you like to add drive-{current}? (yes/no)");  
+            string yesOrNo = Console.ReadLine();  
+            if (yesOrNo == "no")  
+            {  
+                return;  
+            }  
+            else if (yesOrNo == "yes")  
+            {  
+                Console.Write("Drive Name: ");  
+                string driveName = Console.ReadLine();  
+                Console.Write("Creating the new drive....");  
+                tia.CreateDrive(driveName);  
+                Console.WriteLine("Drive is successfully created");  
+                CreateMultipleDrives(tia, current + 1);  
+            }  
+        }  
+  
+        static SecureString GetSecureStringFromUser(string prompt)  
+        {  
+            Console.WriteLine(prompt);  
+            SecureString secureString = new SecureString();  
+            while (true)  
+            {  
+                ConsoleKeyInfo keyInfo = Console.ReadKey(true);  
+                if (keyInfo.Key == ConsoleKey.Enter)  
+                {  
+                    break;  
+                }  
+                else if (keyInfo.Key == ConsoleKey.Backspace)  
+                {  
+                    if (secureString.Length > 0)  
+                    {  
+                        secureString.RemoveAt(secureString.Length - 1);  
+                        Console.Write("\b \b");  
+                    }  
+                }  
+                else  
+                {  
+                    secureString.AppendChar(keyInfo.KeyChar);  
+                    Console.Write("*");  
+                }  
+            }  
+            Console.WriteLine();  
+            secureString.MakeReadOnly();  
+            return secureString;  
+        }  
+    }  
+}  
