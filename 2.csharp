@@ -1,0 +1,65 @@
+using Siemens.Engineering;
+using Siemens.Engineering.HW;
+using Siemens.Engineering.SW;
+using Siemens.Engineering.SW.Blocks;
+using System.Linq;
+
+public class TIAFunctionBlockCreation
+{
+    public void CreateFunctionBlockInMasterPLC()
+    {
+        // TIA Portal Instanz starten
+        TiaPortal tiaPortal = new TiaPortal(TiaPortalMode.WithoutUserInterface);
+        Project project = tiaPortal.Projects[0]; // Angenommen, das Projekt ist bereits offen.
+
+        // Das Gerät mit dem Namen "MasterPLC" finden
+        Device masterPLC = project.Devices
+                                  .Where(device => device.Name == "MasterPLC")
+                                  .FirstOrDefault();
+
+        if (masterPLC == null)
+        {
+            Console.WriteLine("MasterPLC wurde nicht im Projekt gefunden.");
+            tiaPortal.Dispose();
+            return;
+        }
+
+        // Softwarecontainer des MasterPLC abrufen
+        SoftwareContainer softwareContainer = masterPLC.GetService<SoftwareContainer>();
+        PlcSoftware plcSoftware = softwareContainer?.Software as PlcSoftware;
+
+        if (plcSoftware != null)
+        {
+            // Funktionsbaustein in MasterPLC erstellen
+            PlcBlock functionBlock = plcSoftware.BlockGroup.CreatePlcBlock(PlcBlockType.FunctionBlock, "FB_MasterFunctionBlock");
+            functionBlock.ProgrammingLanguage = PlcProgrammingLanguage.SCL;
+
+            // SCL-Code hinzufügen
+            string sclCode = @"
+            VAR_INPUT
+                Input1: BOOL;
+            END_VAR
+            VAR_OUTPUT
+                Output1: INT;
+            END_VAR
+
+            Output1 := INT_TO_DINT(Input1);
+            ";
+
+            // Setze den SCL-Quellcode im Funktionsbaustein
+            functionBlock.SourceCode = sclCode;
+
+            // Optional: Kommentar hinzufügen
+            functionBlock.Comment = "Dieser Funktionsbaustein wurde in der PLC MasterPLC erstellt.";
+            
+            Console.WriteLine("Funktionsbaustein wurde erfolgreich in MasterPLC erstellt.");
+        }
+        else
+        {
+            Console.WriteLine("Die PLC-Software für MasterPLC konnte nicht geladen werden.");
+        }
+
+        // TIA Portal Instanz freigeben
+        tiaPortal.Dispose();
+    }
+}
