@@ -1,0 +1,68 @@
+using Siemens.Engineering;
+using Siemens.Engineering.HW;
+using Siemens.Engineering.HW.Features;
+using Siemens.Engineering.SW;
+using Siemens.Engineering.SW.Blocks;
+using System;
+using System.IO;
+
+public class TIANewProjectCreation
+{
+    public void CreateNewTIAProjectWithPLC()
+    {
+        // Schritt 1: Neue TIA Portal Instanz starten
+        TiaPortal tiaPortal = new TiaPortal(TiaPortalMode.WithoutUserInterface);
+
+        // Schritt 2: Neues Projekt erstellen
+        string projectPath = @"C:\TIAProjects\MyNewProject"; // Stelle sicher, dass der Pfad existiert
+        string projectName = "MyNewProject";
+        Directory.CreateDirectory(projectPath); // Erstellen des Verzeichnisses falls es nicht existiert
+        Project project = tiaPortal.Projects.Create(Path.Combine(projectPath, projectName));
+
+        Console.WriteLine("Neues TIA-Projekt erstellt: " + projectName);
+
+        // Schritt 3: Neue PLC hinzufügen
+        // Zuerst ein PLC-Gerätetyp auswählen, z. B. S7-1500 (SM331)
+        Device device = project.Devices.CreateWithItem("OrderNumber:6ES7 510-1DJ01-0AB0/V2.6", "MasterPLC", "PLC_1");
+
+        Console.WriteLine("Neue PLC hinzugefügt: MasterPLC");
+
+        // Schritt 4: Softwarecontainer der PLC abrufen
+        SoftwareContainer softwareContainer = device.GetService<SoftwareContainer>();
+        PlcSoftware plcSoftware = softwareContainer?.Software as PlcSoftware;
+
+        if (plcSoftware != null)
+        {
+            // Schritt 5: Funktionsbaustein in der neuen PLC erstellen
+            PlcBlock functionBlock = plcSoftware.BlockGroup.CreatePlcBlock(PlcBlockType.FunctionBlock, "FB_NewFunctionBlock");
+            functionBlock.ProgrammingLanguage = PlcProgrammingLanguage.SCL;
+
+            Console.WriteLine("Funktionsbaustein FB_NewFunctionBlock erstellt.");
+
+            // Schritt 6: SCL-Code zum Funktionsbaustein hinzufügen
+            string sclCode = @"
+            VAR_INPUT
+                Input1: BOOL;
+            END_VAR
+            VAR_OUTPUT
+                Output1: INT;
+            END_VAR
+
+            Output1 := INT_TO_DINT(Input1);
+            ";
+
+            functionBlock.SourceCode = sclCode;
+            functionBlock.Comment = "Dieser Funktionsbaustein wurde im neuen Projekt und der neuen PLC erstellt.";
+
+            Console.WriteLine("SCL-Code im Funktionsbaustein hinzugefügt.");
+        }
+        else
+        {
+            Console.WriteLine("Die Software für die PLC konnte nicht geladen werden.");
+        }
+
+        // Schritt 7: TIA Portal Instanz und Projekt freigeben
+        tiaPortal.Dispose();
+        Console.WriteLine("TIA Portal Instanz beendet.");
+    }
+}
