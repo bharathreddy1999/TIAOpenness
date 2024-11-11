@@ -1,0 +1,48 @@
+using Siemens.Engineering;
+using Siemens.Engineering.SW;
+using Siemens.Engineering.SW.Blocks;
+
+public class TIAFunctionBlockCreation
+{
+    public void CreateFunctionBlockWithSCL()
+    {
+        // TIA Portal Instanz starten
+        TiaPortal tiaPortal = new TiaPortal(TiaPortalMode.WithoutUserInterface);
+        Project project = tiaPortal.Projects[0]; // Angenommen, das Projekt ist bereits offen.
+
+        // Auf das PLC-Gerät zugreifen
+        Device plcDevice = project.Devices[0];
+
+        // Softwarecontainer des PLCs abrufen
+        SoftwareContainer softwareContainer = plcDevice.GetService<SoftwareContainer>();
+        PlcSoftware plcSoftware = softwareContainer.Software as PlcSoftware;
+
+        // Funktionsbaustein erstellen oder abrufen
+        if (plcSoftware != null)
+        {
+            PlcBlock functionBlock = plcSoftware.BlockGroup.CreatePlcBlock(PlcBlockType.FunctionBlock, "FB_WithSCL");
+            functionBlock.ProgrammingLanguage = PlcProgrammingLanguage.SCL;
+
+            // SCL-Code hinzufügen
+            string sclCode = @"
+            VAR_INPUT
+                Input1: BOOL;
+            END_VAR
+            VAR_OUTPUT
+                Output1: INT;
+            END_VAR
+
+            Output1 := INT_TO_WORD(Input1);
+            ";
+
+            // Setze den Quellcode im Baustein
+            functionBlock.SourceCode = sclCode;
+
+            // Optional: Kommentar hinzufügen
+            functionBlock.Comment = "Funktionsbaustein mit SCL-Code hinzugefügt über TIA Openness";
+        }
+
+        // TIA Portal Instanz freigeben
+        tiaPortal.Dispose();
+    }
+}
