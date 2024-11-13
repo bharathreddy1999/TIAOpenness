@@ -1,0 +1,93 @@
+// Define Constants
+CONST
+    MIN_SAFE_DISTANCE : REAL := 2.0;  // Minimum safe distance in meters
+    EMERGENCY_STOP_DISTANCE : REAL := 1.0;  // Emergency stop threshold
+    BASE_TARGET_SPEED : REAL := 1.5;  // Base target speed in m/s
+    TURN_RADIUS : REAL := 0.5;  // Radius for turning in meters
+END_CONST
+
+// Define Variables
+VAR
+    current_speed : REAL;              // Current speed from encoder feedback
+    target_speed : REAL;               // Target speed based on load and distance
+    distance_to_front_robot : REAL;    // Distance to the robot in front from ultrasonic sensor
+    load_weight : REAL;                // Weight of the car body being transported
+    obstacle_detected : BOOL;          // Obstacle detection status from sensor
+    direction : INT;                   // Direction: 1 = forward, -1 = reverse
+    pid_speed_output : REAL;           // Output of PID controller for speed
+    pid_distance_output : REAL;        // Output of PID controller for distance
+    emergency_stop : BOOL := FALSE;    // Flag for emergency stop
+    pid_speed : PID;                   // Instance of PID controller for speed
+    pid_distance : PID;                // Instance of PID controller for distance
+END_VAR
+
+// Initialize PID Controllers
+pid_speed.Kp := 1.0;
+pid_speed.Ki := 0.1;
+pid_speed.Kd := 0.01;
+
+pid_distance.Kp := 1.5;
+pid_distance.Ki := 0.15;
+pid_distance.Kd := 0.05;
+
+// Main Control Logic
+IF emergency_stop THEN
+    // Emergency Stop Procedure
+    target_speed := 0;
+    pid_speed.SetPoint := 0;
+    pid_distance.SetPoint := 0;
+ELSE
+    // Load-based Speed Adjustment
+    IF load_weight > 500.0 THEN
+        // For heavier loads, reduce the target speed and adjust PID response
+        target_speed := BASE_TARGET_SPEED * 0.8;
+        pid_speed.Kp := 0.8;
+        pid_speed.Ki := 0.08;
+        pid_speed.Kd := 0.005;
+    ELSE
+        // For lighter loads, keep default values
+        target_speed := BASE_TARGET_SPEED;
+    END_IF;
+
+    // Distance-based Speed Control
+    IF distance_to_front_robot < MIN_SAFE_DISTANCE THEN
+        pid_distance.SetPoint := MIN_SAFE_DISTANCE;  // Set distance to maintain
+        pid_distance.ActualValue := distance_to_front_robot;
+        
+        // Apply PID distance controller output to adjust speed
+        pid_distance_output := pid_distance.CalcOutput();
+        target_speed := target_speed * (pid_distance_output / MIN_SAFE_DISTANCE);
+    END_IF;
+
+    // Obstacle Detection
+    IF obstacle_detected THEN
+        IF distance_to_front_robot < EMERGENCY_STOP_DISTANCE THEN
+            // Trigger Emergency Stop
+            emergency_stop := TRUE;
+        ELSE
+            // Obstacle Avoidance Logic
+            target_speed := 0.5 * BASE_TARGET_SPEED;  // Slow down
+            // Add rerouting or other maneuver logic here if needed
+        END_IF;
+    END_IF;
+END_IF;
+
+// Direction Control
+IF direction = -1 THEN
+    // Reverse mode, reduce target speed
+    target_speed := target_speed * 0.5;
+ENDIF;
+
+// Set PID Speed Control Parameters
+pid_speed.SetPoint := target_speed;
+pid_speed.ActualValue := current_speed;
+pid_speed_output := pid_speed.CalcOutput();
+
+// Update Motor Speed Based on PID Output
+current_speed := pid_speed_output;
+
+// Error Logging (for diagnostics)
+IF pid_speed_output > MAX_ALLOWED_SPEED OR pid_distance_output < MIN_SAFE_DISTANCE THEN
+    // Log an error or trigger an alert
+    // Implement error logging function here
+END_IF;
