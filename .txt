@@ -1,0 +1,3 @@
+I am working on a project where I need to implement a PID control system in the project. The goal is to control the speed of a motor based on encoder feedback and maintain a minimum distance using an ultrasonic sensor. Below are the specific requirements and details of my project:
+
+Application:  I am using Mobile robots to transfer the Car bodies to the Painting Shop, mobile robot should run at specific speed and it should always maintain gap between other mobile Robot which is in the front, so now I want implement the PID control for the same.
