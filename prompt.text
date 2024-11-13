@@ -1,4 +1,4 @@
-Complex PID Control Program for Mobile Robot in Painting Shop
+
 
 Objectives:
 Speed Control: Maintain a target speed for the mobile robot, adjusting based on encoder feedback.
