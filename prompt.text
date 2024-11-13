@@ -1,0 +1,35 @@
+Complex PID Control Program for Mobile Robot in Painting Shop
+
+Objectives:
+Speed Control: Maintain a target speed for the mobile robot, adjusting based on encoder feedback.
+Distance Control: Ensure a safe distance (minimum gap) from the robot in front using ultrasonic sensor data.
+Obstacle Avoidance: Detect unexpected obstacles and stop or reroute if necessary.
+Adaptive Response Based on Load: Adjust speed and stopping distance based on the weight of the car body being transferred.
+Direction Control: Implement reverse and turn-around functionality in tight spaces.
+Prompt:
+In Siemens Copilot, create an SCL program to control the mobile robot using PID controllers, handling encoder feedback and ultrasonic sensor input for adaptive speed and distance control. The program should:
+
+PID Speed Controller:
+
+Create a PID loop for speed control. Use encoder feedback to adjust the motor speed to match a target speed based on the load (car body weight).
+Implement adaptive gains in the PID to dynamically adjust the speed control based on the load. If a heavier car body is detected, slow down the response to avoid instability.
+PID Distance Controller:
+
+Implement a second PID loop to manage the distance to the mobile robot in front using ultrasonic sensor data.
+Use this loop to decelerate the robot when approaching the front robot at a distance less than a set threshold (e.g., 2 meters). If the distance is below 1 meter, reduce the speed gradually and initiate braking.
+Conditional Obstacle Avoidance:
+
+Integrate obstacle detection using an additional sensor (e.g., LIDAR or infrared).
+Write conditional logic to stop the robot if an obstacle is detected within 1 meter. Send an alert if the obstacle remains in the path for more than 5 seconds, then attempt a rerouting maneuver by gradually adjusting speed and direction.
+Load-Based Stopping Distance:
+
+Program logic to assess the weight of the car body (using a predefined variable or a sensor reading).
+Modify the stopping distance and deceleration curve based on weight. Heavier loads should increase the stopping distance, while lighter loads should decrease it.
+Direction Control with Reverse and Turn:
+
+Implement directional control logic that adjusts the PID controller to handle reverse and tight turns.
+If the robot reaches a designated turn point, use conditional statements to reduce speed, pause, and then resume movement in the new direction based on a turning radius. Include logic for safe reverse movements if space is tight.
+Error Detection and Alert System:
+
+Integrate error handling to log and report conditions such as sensor malfunctions, load inconsistencies, or PID parameter adjustments exceeding expected ranges.
+Set up the program to send alerts via HMI or log warnings when control targets are not maintained, such as failure to maintain speed or distance.
