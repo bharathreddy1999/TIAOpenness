@@ -78,3 +78,25 @@
 
 <!-- another chat -->
 
+<DockPanel LastChildFill="True">
+        <!-- Title Bar -->
+        <Border Background="#FFDDDDDD" Height="30" DockPanel.Dock="Top" MouseDown="TitleBar_MouseDown">
+            <DockPanel>
+                <!-- Title -->
+                <TextBlock Text="My Custom Window" VerticalAlignment="Center" FontSize="14"
+                           FontWeight="Bold" Foreground="Black" Margin="10,0,0,0" DockPanel.Dock="Left"/>
+                
+                <!-- Control Buttons -->
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <!-- Minimize Button -->
+                    <Button Content="_" Width="30" Height="25" Click="Minimize_Click" ToolTip="Minimize"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    <!-- Maximize/Restore Button -->
+                    <Button Content="⬜" Width="30" Height="25" Click="MaximizeRestore_Click" ToolTip="Maximize/Restore"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                    <!-- Close Button -->
+                    <Button Content="X" Width="30" Height="25" Background="Red" Foreground="White"
+                            Click="Close_Click" ToolTip="Close" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
