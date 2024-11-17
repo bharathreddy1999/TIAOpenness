@@ -1,0 +1,146 @@
+using System;  
+using System.IO;  
+using Siemens.Engineering;  
+using Siemens.Engineering.HW;  
+using Siemens.Engineering.HW.Features;  
+using Siemens.Engineering.SW;  
+using Siemens.Engineering.SW.Blocks;  
+using Siemens.Engineering.SW.Types;  
+using System.Linq;  
+  
+namespace TIAexport  
+{  
+    class Program  
+    {  
+        static void Main(string[] args)  
+        {  
+            TiaPortal tiaPortal = null;  
+            Project project = null;  
+  
+            try  
+            {  
+                tiaPortal = new TiaPortal(TiaPortalMode.WithUserInterface);  
+  
+                // Open the project  
+                project = tiaPortal.Projects.Open(new FileInfo(@"C:\TIA Projects\Project2\Project2.ap17"));  
+  
+                foreach (Device device in project.Devices)  
+                {  
+                    PlcSoftware plcSoftware = GetPlcSoftware(device);  
+  
+                    if (plcSoftware != null)  
+                    {  
+                        // Export all blocks, variables, and data types for each PLC  
+                        ExportAll(device.Name, plcSoftware);  
+                    }  
+                    else  
+                    {  
+                        Console.WriteLine($"No PLC software found in the device {device.Name}.");  
+                    }  
+                }  
+            }  
+            catch (Exception ex)  
+            {  
+                Console.WriteLine("An error occurred: " + ex.Message);  
+            }  
+            finally  
+            {  
+                // Clean up and close the TIA Portal project  
+                if (project != null)  
+                {  
+                    project.Close();  
+                }  
+  
+                if (tiaPortal != null)  
+                {  
+                    tiaPortal.Dispose();  
+                }  
+            }  
+        }  
+  
+        private static PlcSoftware GetPlcSoftware(Device device)  
+        {  
+            foreach (DeviceItem deviceItem in device.DeviceItems)  
+            {  
+                if (deviceItem.GetService<SoftwareContainer>() is SoftwareContainer softwareContainer)  
+                {  
+                    if (softwareContainer.Software is PlcSoftware plcSoftware)  
+                    {  
+                        return plcSoftware;  
+                    }  
+                }  
+            }  
+            return null;  
+        }  
+  
+        private static void ExportAll(string deviceName, PlcSoftware plcSoftware)  
+        {  
+            string baseExportPath = Path.Combine(@"C:\TIA Projects\Exports", deviceName);  
+  
+            // Ensure the base export directory exists  
+            Directory.CreateDirectory(baseExportPath);  
+  
+            // Export all program blocks  
+            string blocksExportPath = Path.Combine(baseExportPath, "ProgramBaustein");  
+            Directory.CreateDirectory(blocksExportPath);  
+            ExportAllBlocks(plcSoftware, blocksExportPath);  
+  
+            // Export all variables  
+            string variablesExportPath = Path.Combine(baseExportPath, "Variables");  
+            Directory.CreateDirectory(variablesExportPath);  
+            ExportAllVariables(plcSoftware, variablesExportPath);  
+  
+            // Export all data types  
+            string dataTypesExportPath = Path.Combine(baseExportPath, "DataTypes");  
+            Directory.CreateDirectory(dataTypesExportPath);  
+            ExportAllDataTypes(plcSoftware, dataTypesExportPath);  
+        }  
+  
+        private static void ExportAllBlocks(PlcSoftware plcSoftware, string exportPath)  
+        {  
+            foreach (PlcBlock plcBlock in plcSoftware.BlockGroup.Blocks)  
+            {  
+                // Check if the block is not know-how protected  
+                if (!plcBlock.IsKnowHowProtected)  
+                {  
+                    // Specify the export path  
+                    string blockExportPath = Path.Combine(exportPath, $"{plcBlock.Name}.xml");  
+  
+                    // Export the block to the specified path  
+                    plcBlock.Export(new FileInfo(blockExportPath), ExportOptions.WithDefaults);  
+                    Console.WriteLine("Block {0} exported successfully to: {1}", plcBlock.Name, blockExportPath);  
+                }  
+                else  
+                {  
+                    Console.WriteLine("Block {0} is know-how protected and was not exported.", plcBlock.Name);  
+                }  
+            }  
+        }  
+  
+        private static void ExportAllVariables(PlcSoftware plcSoftware, string exportPath)  
+        {  
+            foreach (PlcTagTable tagTable in plcSoftware.TagTableGroup.TagTables)  
+            {  
+                // Specify the export path  
+                string variableExportPath = Path.Combine(exportPath, $"{tagTable.Name}.xml");  
+  
+                // Export the tag table to the specified path  
+                tagTable.Export(new FileInfo(variableExportPath), ExportOptions.WithDefaults);  
+                Console.WriteLine("Tag table {0} exported successfully to: {1}", tagTable.Name, variableExportPath);  
+            }  
+        }  
+  
+        private static void ExportAllDataTypes(PlcSoftware plcSoftware, string exportPath)  
+        {  
+            foreach (PlcType plcType in plcSoftware.TypeGroup.Types)  
+            {  
+                // Specify the export path  
+                string dataTypeExportPath = Path.Combine(exportPath, $"{plcType.Name}.xml");  
+  
+                // Export the data type to the specified path  
+                plcType.Export(new FileInfo(dataTypeExportPath), ExportOptions.WithDefaults);  
+                Console.WriteLine("Data type {0} exported successfully to: {1}", plcType.Name, dataTypeExportPath);  
+            }  
+        }  
+    }  
+}  
