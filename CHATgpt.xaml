@@ -1,0 +1,80 @@
+<Window x:Class="WpfApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Basic Project Generator" Height="600" Width="900">
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"/> <!-- TIA Portal Section -->
+            <ColumnDefinition Width="4*"/> <!-- TIA Project Section -->
+            <ColumnDefinition Width="4*"/> <!-- Add Device Section -->
+            <ColumnDefinition Width="3*"/> <!-- Compile Section -->
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/> <!-- Log Section -->
+        </Grid.RowDefinitions>
+
+        <!-- TIA Portal Section -->
+        <GroupBox Header="TIA Portal" Grid.Column="0" Margin="5">
+            <StackPanel Margin="10">
+                <RadioButton Content="With user interface" Margin="5"/>
+                <RadioButton Content="Without user interface" Margin="5"/>
+                <Button Content="Open TIA Portal" Margin="5" Width="150"/>
+                <TextBox Header="Process ID" PlaceholderText="Enter Process ID" Margin="5"/>
+                <ComboBox Header="Processes" Margin="5">
+                    <ComboBoxItem Content="Process 1"/>
+                    <ComboBoxItem Content="Process 2"/>
+                </ComboBox>
+                <Button Content="Connect TIA Portal" Margin="5" Width="150"/>
+                <Button Content="Close TIA Portal" Margin="5" Width="150"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- TIA Portal Project Section -->
+        <GroupBox Header="TIA Portal Project" Grid.Column="1" Margin="5">
+            <StackPanel Margin="10">
+                <Button Content="Create new project" Margin="5" Width="150"/>
+                <Button Content="Open project" Margin="5" Width="150"/>
+                <TextBox Header="Project name" PlaceholderText="Enter project name" Margin="5"/>
+                <TextBox Header="Target directory" PlaceholderText="Enter target directory" Margin="5"/>
+                <ComboBox Header="Available projects" Margin="5">
+                    <ComboBoxItem Content="Project A"/>
+                    <ComboBoxItem Content="Project B"/>
+                </ComboBox>
+                <Button Content="Load project" Margin="5" Width="150"/>
+                <Button Content="Save project" Margin="5" Width="150"/>
+                <Button Content="Close project" Margin="5" Width="150"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Add New Device Section -->
+        <GroupBox Header="Add New Device" Grid.Column="2" Margin="5">
+            <StackPanel Margin="10">
+                <ComboBox Header="Device templates" Margin="5"/>
+                <CheckBox Content="Include Failsafe" Margin="5"/>
+                <TextBox Header="Device name" PlaceholderText="Enter device name" Margin="5"/>
+                <TextBox Header="Station name" PlaceholderText="Enter station name" Margin="5"/>
+                <TextBox Header="Order number" PlaceholderText="Enter order number" Margin="5"/>
+                <TextBox Header="Version" PlaceholderText="Enter version" Margin="5"/>
+                <TextBox Header="Type identifier" PlaceholderText="Enter type identifier" Margin="5"/>
+                <Button Content="Add new device" Margin="5" Width="150"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Compile Section -->
+        <GroupBox Header="Compile" Grid.Column="3" Margin="5">
+            <StackPanel Margin="10">
+                <ListBox Header="Device list" Height="200" Margin="5"/>
+                <ComboBox Header="Device to compile" Margin="5"/>
+                <Button Content="Compile device" Margin="5" Width="150"/>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Log Section -->
+        <TextBox Grid.Row="1" Grid.ColumnSpan="4" Margin="5" VerticalScrollBarVisibility="Auto" AcceptsReturn="True"
+                 Text="2024-11-17 07:31:06.887 ProjectGeneratorService..." />
+    </Grid>
+</Window>
+
+<!-- another chat -->
+
