@@ -1,0 +1,73 @@
+using System;  
+using System.IO;  
+using System.Xml;  
+  
+namespace XmlModifier  
+{  
+    class Program  
+    {  
+        static void Main(string[] args)  
+        {  
+            string rootDirectory = @"C:\temp"; // Change this to your root directory containing XML files  
+            ProcessDirectory(rootDirectory);  
+        }  
+  
+        static void ProcessDirectory(string directoryPath)  
+        {  
+            try  
+            {  
+                // Process all XML files in the current directory  
+                string[] xmlFiles = Directory.GetFiles(directoryPath, "*.xml");  
+                foreach (var filePath in xmlFiles)  
+                {  
+                    ModifyXmlFile(filePath);  
+                    Console.WriteLine($"Processed {filePath}");  
+                }  
+  
+                // Recursively process subdirectories  
+                string[] subDirectories = Directory.GetDirectories(directoryPath);  
+                foreach (var subDirectory in subDirectories)  
+                {  
+                    ProcessDirectory(subDirectory);  
+                }  
+            }  
+            catch (Exception ex)  
+            {  
+                Console.WriteLine($"Error processing directory {directoryPath}: {ex.Message}");  
+            }  
+        }  
+  
+        static void ModifyXmlFile(string filePath)  
+        {  
+            try  
+            {  
+                XmlDocument doc = new XmlDocument();  
+                doc.Load(filePath);  
+  
+                // Replace keywords  
+                string xmlContent = File.ReadAllText(filePath);  
+                xmlContent = xmlContent.Replace("V19", "v17")  
+                                       .Replace("fleg/v5", "fleg/v4");  
+  
+                // Load the modified content back into the XmlDocument  
+                doc.LoadXml(xmlContent);  
+  
+                // Delete specific elements  
+                XmlNamespaceManager nsmgr = new XmlNamespaceManager(doc.NameTable);  
+                XmlNodeList nodes = doc.SelectNodes("//*[contains(name(), 'Namespace')]", nsmgr);  
+  
+                foreach (XmlNode node in nodes)  
+                {  
+                    node.ParentNode.RemoveChild(node);  
+                }  
+  
+                // Save changes back to the file  
+                doc.Save(filePath);  
+            }  
+            catch (Exception ex)  
+            {  
+                Console.WriteLine($"Error processing file {filePath}: {ex.Message}");  
+            }  
+        }  
+    }  
+}  
