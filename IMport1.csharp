@@ -1,0 +1,171 @@
+using System;
+using System.IO;
+using System.Collections.Generic;
+using Siemens.Engineering;
+using Siemens.Engineering.HW;
+using Siemens.Engineering.HW.Features;
+using Siemens.Engineering.SW;
+using Siemens.Engineering.SW.Blocks;
+using Siemens.Engineering.Compiler;
+using Siemens.Engineering.Compare;
+using System.Linq;
+using Siemens.Engineering.SW.Tags;
+using Siemens.Engineering.SW.Types;
+
+namespace TIAimport
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            TiaPortal tiaPortal = null;
+            Project project = null;
+
+            tiaPortal = new TiaPortal(TiaPortalMode.WithUserInterface);
+            // Open the project   
+            project = tiaPortal.Projects.Open(new FileInfo(@"C:\Users\DEBIEYAL\OneDrive - Durr Group\Dokumente\Automatisierung\T4_Dry1\T4_Dry1.ap15_1"));
+            // Get the PLC software (assuming the first device is the PLC)   
+            Device device = project.Devices[0];
+            PlcSoftware plcSoftware = GetPlcSoftware(device);
+
+            if (plcSoftware != null)
+            {
+                // Call the import functions  
+                string importDataTypeBasePath = @"C:\Import from V17 to V15.1\PLC data types";
+                ImportPlcDataTypes(plcSoftware, importDataTypeBasePath);
+
+                string importProgramBlocksBasePath = @"C:\Import from V17 to V15.1\Program blocks";
+                ImportProgramBlocks(plcSoftware, importProgramBlocksBasePath);
+
+                // Perform a consistency check and compile the project  
+                CompilePlcSoftware(plcSoftware);
+            }
+            else
+            {
+                Console.WriteLine("No PLC software found in the device.");
+            }
+            Console.ReadLine();
+        }
+
+        private static PlcSoftware GetPlcSoftware(Device device)
+        {
+            foreach (DeviceItem deviceItem in device.DeviceItems)
+            {
+                if (deviceItem.GetService<SoftwareContainer>() is SoftwareContainer softwareContainer)
+                {
+                    if (softwareContainer.Software is PlcSoftware plcSoftware)
+                    {
+                        return plcSoftware;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static void ImportPlcDataTypes(PlcSoftware plcSoftware, string importBasePath)
+        {
+            // Get the base PlcTypeGroup  
+            PlcTypeGroup baseTypeGroup = plcSoftware.TypeGroup;
+
+            // Import all data types from the base path  
+            ImportPlcDataTypesRecursive(baseTypeGroup, importBasePath);
+        }
+
+        private static void ImportPlcDataTypesRecursive(PlcTypeGroup currentGroup, string currentPath)
+        {
+            // Import XML files in the current directory  
+            foreach (string filePath in Directory.GetFiles(currentPath, "*.xml"))
+            {
+                try
+                {
+                    // Import the data type  
+                    currentGroup.Types.Import(new FileInfo(filePath), ImportOptions.Override);
+                    Console.WriteLine("Data type imported successfully from: {0}", filePath);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Failed to import data type from {0}: {1}", filePath, ex.Message);
+                }
+            }
+
+            // Recurse into subdirectories  
+            foreach (string directoryPath in Directory.GetDirectories(currentPath))
+            {
+                // Create or get the sub-group  
+                string groupName = Path.GetFileName(directoryPath);
+                PlcTypeGroup subGroup = currentGroup.Groups.FirstOrDefault(g => g.Name == groupName) ?? currentGroup.Groups.Create(groupName);
+
+                // Recurse into the subdirectory  
+                ImportPlcDataTypesRecursive(subGroup, directoryPath);
+            }
+        }
+
+        private static void ImportProgramBlocks(PlcSoftware plcSoftware, string importBasePath)
+        {
+            // Get the base PlcBlockGroup  
+            PlcBlockGroup baseBlockGroup = plcSoftware.BlockGroup;
+
+            // Import all program blocks from the base path  
+            ImportProgramBlocksRecursive(baseBlockGroup, importBasePath);
+        }
+
+        private static void ImportProgramBlocksRecursive(PlcBlockGroup currentGroup, string currentPath)
+        {
+            // Import XML files in the current directory  
+            foreach (string filePath in Directory.GetFiles(currentPath, "*.xml"))
+            {
+                try
+                {
+                    // Import the program block  
+                    currentGroup.Blocks.Import(new FileInfo(filePath), ImportOptions.Override);
+                    Console.WriteLine("Program block imported successfully from: {0}", filePath);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Failed to import program block from {0}: {1}", filePath, ex.Message);
+                }
+            }
+
+            // Recurse into subdirectories  
+            foreach (string directoryPath in Directory.GetDirectories(currentPath))
+            {
+                // Create or get the sub-group  
+                string groupName = Path.GetFileName(directoryPath);
+                PlcBlockGroup subGroup = currentGroup.Groups.FirstOrDefault(g => g.Name == groupName) ?? currentGroup.Groups.Create(groupName);
+
+                // Recurse into the subdirectory  
+                ImportProgramBlocksRecursive(subGroup, directoryPath);
+            }
+        }
+
+        public static void CompilePlcSoftware(PlcSoftware plcSoftware)
+        {
+            ICompilable compileService = plcSoftware.GetService<ICompilable>();
+            CompilerResult result = compileService.Compile();
+            WriteCompilerResults(result);
+        }
+
+        private static void WriteCompilerResults(CompilerResult result)
+        {
+            Console.WriteLine("State: " + result.State);
+            Console.WriteLine("Warning Count: " + result.WarningCount);
+            Console.WriteLine("Error Count: " + result.ErrorCount);
+            RecursivelyWriteMessages(result.Messages);
+        }
+
+        private static void RecursivelyWriteMessages(CompilerResultMessageComposition messages, string indent = "")
+        {
+            indent += "\t";
+            foreach (CompilerResultMessage message in messages)
+            {
+                Console.WriteLine(indent + "Path: " + message.Path);
+                Console.WriteLine(indent + "DateTime: " + message.DateTime.ToLocalTime());
+                Console.WriteLine(indent + "State: " + message.State);
+                Console.WriteLine(indent + "Description: " + message.Description);
+                Console.WriteLine(indent + "Warning Count: " + message.WarningCount);
+                Console.WriteLine(indent + "Error Count: " + message.ErrorCount);
+                RecursivelyWriteMessages(message.Messages, indent);
+            }
+        }
+    }
+}
