@@ -1,1 +1,81 @@
 To handle the dependencies among User-Defined Types (UDTs) and other elements during the import process in TIA Portal, you can follow a structured approach to ensure that all necessary dependencies are imported before the dependent elements. Given the large number of files, manual sorting is impractical, so an automated approach is necessary. Below is a solution that involves parsing the XML files to determine dependencies and then importing them in the correct order.
+Steps to Implement the Iterative Import Process
+1. First Pass: Attempt Import of All Files
+Try importing all files in the directory.
+Keep track of files that fail during the import.
+2. Log Failed Imports
+Store the paths of files that failed in a collection (e.g., List<string>).
+Log details for debugging.
+3. Retry Failed Imports
+Repeat the import process with only the files that failed in the previous pass.
+Continue until no files fail or there are cyclic dependencies that cannot be resolved.
+4. Stop After Multiple Failures
+Implement a threshold to avoid infinite loops in case of unresolved dependencies or other issues.
+Implementation
+csharp
+Copy code
+private static void ImportPlcDataTypesIterative(PlcTypeGroup typeGroup, string importBasePath)
+{
+    // Get all files to import
+    var allFiles = Directory.GetFiles(importBasePath, "*.xml").ToList();
+    var failedFiles = new List<string>();
+    int iteration = 0;
+
+    do
+    {
+        iteration++;
+        Console.WriteLine($"Import Iteration: {iteration}");
+
+        failedFiles.Clear(); // Clear the list for this iteration
+
+        foreach (string filePath in allFiles)
+        {
+            try
+            {
+                // Attempt to import the file
+                typeGroup.Types.Import(new FileInfo(filePath), ImportOptions.Override);
+                Console.WriteLine($"Successfully imported: {filePath}");
+            }
+            catch (Exception ex)
+            {
+                // Log failure and store the file for the next iteration
+                Console.WriteLine($"Failed to import: {filePath}, Error: {ex.Message}");
+                failedFiles.Add(filePath);
+            }
+        }
+
+        // Prepare for the next iteration with only failed files
+        allFiles = new List<string>(failedFiles);
+
+    } while (failedFiles.Count > 0 && iteration < 10); // Limit to 10 iterations to avoid infinite loop
+
+    if (failedFiles.Count > 0)
+    {
+        Console.WriteLine("The following files could not be imported after multiple attempts:");
+        foreach (string failedFile in failedFiles)
+        {
+            Console.WriteLine(failedFile);
+        }
+    }
+    else
+    {
+        Console.WriteLine("All files were successfully imported!");
+    }
+}
+Advantages of This Approach
+Dynamic Dependency Resolution: Files are retried as their dependencies are resolved.
+Scalable: Works for a large number of files without pre-sorting.
+Error Logging: Tracks files that consistently fail, making it easier to diagnose issues.
+No Pre-Processing Needed: Avoids the need for complex dependency parsing or sorting.
+Integration in Your Program
+Replace the direct import function call with the iterative one in your Main method:
+
+csharp
+Copy code
+string importDataTypeBasePath = @"C:\Import from V17 to V15.1\PLC data types";
+ImportPlcDataTypesIterative(plcSoftware.TypeGroup, importDataTypeBasePath);
+Optional Enhancements
+Error Reporting: Write failed file names and error messages to a log file for review.
+Dependency Parsing (Optional): If retrying fails repeatedly, attempt parsing dependencies to pinpoint the root cause.
+User Feedback: Provide clear console output or a UI update for better tracking of progress.
+This iterative approach ensures you gradually resolve dependencies while handling errors gracefully.
